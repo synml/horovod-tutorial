@@ -1,6 +1,7 @@
 # Horovod 설치 방법
 
 > Horovod 공식 설치 방법을 기반으로 설명합니다. ([링크](https://github.com/horovod/horovod/blob/master/docs/gpus.rst))
+Windows는 설치가 불가능합니다!
 > 
 
 ## 1. CMake 설치
