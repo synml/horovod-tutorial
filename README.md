@@ -2,7 +2,7 @@
 
 > Horovod 공식 docs를 기반으로 설명합니다. ([링크](https://github.com/horovod/horovod/blob/master/docs/pytorch.rst))
 
-PyTorch와 함께 Horovod를 사용하려면 교육 스크립트를 다음과 같이 수정하십시오.
+PyTorch와 함께 Horovod를 사용하려면 학습 스크립트를 다음과 같이 수정하십시오.
 
 1. ``hvd.init()`` 실행
 2. 각 GPU를 프로세스에 하나씩 고정합니다.
