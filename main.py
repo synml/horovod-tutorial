@@ -148,12 +148,10 @@ if __name__ == '__main__':
 
     # Horovod: initialize library.
     hvd.init()
-    torch.manual_seed(args.seed)
 
     if args.cuda:
         # Horovod: pin GPU to local rank.
         torch.cuda.set_device(hvd.local_rank())
-        torch.cuda.manual_seed(args.seed)
     else:
         if args.use_mixed_precision:
             raise ValueError("Mixed precision is only supported with cuda enabled.")
