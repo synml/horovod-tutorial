@@ -67,7 +67,7 @@ def train_mixed_precision(epoch, scaler):
         optimizer.zero_grad()
         with torch.cuda.amp.autocast():
             output = model(data)
-            loss = F.cross_entropy(output, target, reduction='sum')
+            loss = F.cross_entropy(output, target)
 
         scaler.scale(loss).backward()
         # Make sure all async allreduces are done
@@ -96,7 +96,7 @@ def train(epoch):
             data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
         output = model(data)
-        loss = F.cross_entropy(output, target, reduction='sum')
+        loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
@@ -122,7 +122,7 @@ def test():
             data, target = data.cuda(), target.cuda()
         output = model(data)
         # sum up batch loss
-        test_loss += F.cross_entropy(output, target, reduction='sum').item()
+        test_loss += F.cross_entropy(output, target).item()
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         test_accuracy += pred.eq(target.data.view_as(pred)).cpu().float().sum()
