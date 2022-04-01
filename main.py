@@ -96,6 +96,11 @@ def evaluate(model, testloader, criterion, device):
 
 
 if __name__ == '__main__':
+    # 0. Hyper parameters
+    batch_size = 256
+    epoch = 10
+    lr = 0.001
+
     # Pytorch reproducibility
     reproducibility = True
     if reproducibility:
@@ -108,18 +113,13 @@ if __name__ == '__main__':
         random.seed(0)
         torch.use_deterministic_algorithms(True)
 
-    # 0. Hyper parameters
-    batch_size = 256
-    epoch = 10
-    lr = 0.001
-
     # 1. Dataset
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize((32, 32)),
         torchvision.transforms.ToTensor(),
     ])
-    trainset = torchvision.datasets.MNIST(root='dataset', train=True, download=True, transform=transform)
-    testset = torchvision.datasets.MNIST(root='dataset', train=False, download=True, transform=transform)
+    trainset = torchvision.datasets.MNIST(root='data', train=True, download=True, transform=transform)
+    testset = torchvision.datasets.MNIST(root='data', train=False, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, shuffle=True, num_workers=4, pin_memory=True)
     testloader = torch.utils.data.DataLoader(testset, batch_size, num_workers=4)
 
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     # 3. Loss function, optimizer
     criterion = nn.CrossEntropyLoss(reduction='sum')
-    optimizer = torch.optim.RAdam(model.parameters(), lr=lr)
+    optimizer = torch.optim.RAdam(model.parameters(), lr)
 
     # 4. Tensorboard
     writer = torch.utils.tensorboard.SummaryWriter(os.path.join('runs', model_name + time.strftime('_%y%m%d-%H%M%S')))
