@@ -159,7 +159,7 @@ if __name__ == '__main__':
     if args.use_mixed_precision and int(torch.__version__.split('.')[1]) < 6:
         raise ValueError("Mixed precision is using torch.cuda.amp.autocast(), which requires torch >= 1.6.0")
 
-    # Horovod: limit # of CPU threads to be used per worker.
+    # Horovod: limit # of CPU threads to be used per worker. (OMP_NUM_THREADS와 동일)
     torch.set_num_threads(1)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
