@@ -54,7 +54,7 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
-        return F.log_softmax(x)
+        return x
 
 
 def train_mixed_precision(epoch, scaler):
@@ -67,7 +67,7 @@ def train_mixed_precision(epoch, scaler):
         optimizer.zero_grad()
         with torch.cuda.amp.autocast():
             output = model(data)
-            loss = F.nll_loss(output, target)
+            loss = F.cross_entropy(output, target, reduction='sum')
 
         scaler.scale(loss).backward()
         # Make sure all async allreduces are done
@@ -96,7 +96,7 @@ def train(epoch):
             data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        loss = F.cross_entropy(output, target, reduction='sum')
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
@@ -122,7 +122,7 @@ def test():
             data, target = data.cuda(), target.cuda()
         output = model(data)
         # sum up batch loss
-        test_loss += F.nll_loss(output, target, size_average=False).item()
+        test_loss += F.cross_entropy(output, target, reduction='sum').item()
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
         test_accuracy += pred.eq(target.data.view_as(pred)).cpu().float().sum()
