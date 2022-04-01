@@ -67,7 +67,7 @@ def train_mixed_precision(epoch, scaler):
         optimizer.zero_grad()
         with torch.cuda.amp.autocast():
             output = model(data)
-            loss = F.nll_loss(output, target)
+            loss = F.nll_loss(output, target, reduction='sum')
 
         scaler.scale(loss).backward()
         # Make sure all async allreduces are done
@@ -96,36 +96,32 @@ def train(epoch):
             data, target = data.cuda(), target.cuda()
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        loss = F.nll_loss(output, target, reduction='sum')
         loss.backward()
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             # Horovod: use train_sampler to determine the number of examples in
             # this worker's partition.
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_sampler),
-                       100. * batch_idx / len(train_loader), loss.item()))
-
-
-def metric_average(val, name):
-    tensor = torch.tensor(val)
-    avg_tensor = hvd.allreduce(tensor, name=name)
-    return avg_tensor.item()
+                epoch, batch_idx * len(data), len(train_sampler), 100. * batch_idx / len(train_loader), loss.item()))
 
 
 def test():
     model.eval()
-    test_loss = 0.
-    test_accuracy = 0.
+    test_loss = torch.zeros(1)
+    test_accuracy = torch.zeros(1)
+    if args.cuda:
+        test_loss, test_accuracy = test_loss.cuda(), test_accuracy.cuda()
+
     for data, target in test_loader:
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         output = model(data)
         # sum up batch loss
-        test_loss += F.nll_loss(output, target, size_average=False).item()
+        test_loss += F.nll_loss(output, target, reduction='sum')
         # get the index of the max log-probability
         pred = output.data.max(1, keepdim=True)[1]
-        test_accuracy += pred.eq(target.data.view_as(pred)).cpu().float().sum()
+        test_accuracy += pred.eq(target.data.view_as(pred)).float().sum()
 
     # Horovod: use test_sampler to determine the number of examples in
     # this worker's partition.
@@ -133,8 +129,8 @@ def test():
     test_accuracy /= len(test_sampler)
 
     # Horovod: average metric values across workers.
-    test_loss = metric_average(test_loss, 'avg_loss')
-    test_accuracy = metric_average(test_accuracy, 'avg_accuracy')
+    test_loss = hvd.allreduce(test_loss, 'avg_loss').item()
+    test_accuracy = hvd.allreduce(test_accuracy, 'avg_accuracy').item()
 
     # Horovod: print output only on first rank.
     if hvd.rank() == 0:
