@@ -134,7 +134,6 @@ if __name__ == '__main__':
         torch.backends.cudnn.deterministic = True
         np.random.seed(0)
         random.seed(0)
-        torch.use_deterministic_algorithms(True)
 
     # Horovod: initialize library
     hvd.init()
