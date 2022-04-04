@@ -9,7 +9,7 @@ def train(model, trainloader, criterion, optimizer, device, scaler=None):
     train_loss = torch.zeros(1, device=device)
     correct = torch.zeros(1, dtype=torch.int64, device=device)
     for images, targets in tqdm.tqdm(trainloader, desc='Train', leave=False,
-                                     disable=False if hvd.local_rank == 0 else True):
+                                     disable=False if hvd.local_rank() == 0 else True):
         images, targets = images.to(device), targets.to(device)
 
         optimizer.zero_grad()

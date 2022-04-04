@@ -9,7 +9,7 @@ def evaluate(model, testloader, criterion, amp_enabled, device):
     test_loss = torch.zeros(1, device=device)
     correct = torch.zeros(1, dtype=torch.int64, device=device)
     for images, targets in tqdm.tqdm(testloader, desc='Eval', leave=False,
-                                     disable=False if hvd.local_rank == 0 else True):
+                                     disable=False if hvd.local_rank() == 0 else True):
         images, targets = images.to(device), targets.to(device)
 
         with torch.cuda.amp.autocast(amp_enabled):
