@@ -20,7 +20,7 @@ import train
 if __name__ == '__main__':
     # Hyper parameters
     batch_size = 256
-    epoch = 10
+    epoch = 100
     lr = 0.01
     momentum = 0.9
     weight_decay = 0.0001
