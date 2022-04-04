@@ -12,23 +12,74 @@ import torch.utils.tensorboard
 import torchvision
 import tqdm
 
-import eval
-import model
-import train
-import clean
+
+def train(model, trainloader, criterion, optimizer, device, scaler=None):
+    model.train()
+
+    train_loss = torch.zeros(1, device=device)
+    correct = torch.zeros(1, dtype=torch.int64, device=device)
+    for images, targets in tqdm.tqdm(trainloader, desc='Train', leave=False,
+                                     disable=False if hvd.local_rank() == 0 else True):
+        images, targets = images.to(device), targets.to(device)
+
+        optimizer.zero_grad()
+        with torch.cuda.amp.autocast(enabled=True if scaler is not None else False):
+            outputs = model(images)
+            loss = criterion(outputs, targets)
+        scaler.scale(loss).backward()
+        optimizer.synchronize()
+        scaler.unscale_(optimizer)
+        with optimizer.skip_synchronize():
+            scaler.step(optimizer)
+        scaler.update()
+
+        train_loss += loss
+        pred = torch.argmax(outputs, dim=1)
+        correct += torch.eq(pred, targets).sum()
+
+    train_loss /= len(trainloader)
+    train_loss = hvd.allreduce(train_loss, op=hvd.Average)
+
+    correct = hvd.allreduce(correct, op=hvd.Sum)
+    accuracy = correct / len(trainloader.dataset) * 100
+    return train_loss.item(), accuracy.item()
+
+
+def evaluate(model, testloader, criterion, amp_enabled, device):
+    model.eval()
+
+    test_loss = torch.zeros(1, device=device)
+    correct = torch.zeros(1, dtype=torch.int64, device=device)
+    for images, targets in tqdm.tqdm(testloader, desc='Eval', leave=False,
+                                     disable=False if hvd.local_rank() == 0 else True):
+        images, targets = images.to(device), targets.to(device)
+
+        with torch.cuda.amp.autocast(amp_enabled):
+            with torch.no_grad():
+                outputs = model(images)
+            test_loss += criterion(outputs, targets)
+            pred = torch.argmax(outputs, dim=1)
+            correct += torch.eq(pred, targets).sum()
+
+    test_loss /= len(testloader)
+    test_loss = hvd.allreduce(test_loss, op=hvd.Average)
+
+    correct = hvd.allreduce(correct, op=hvd.Sum)
+    accuracy = correct / len(testloader.dataset) * 100
+    return test_loss.item(), accuracy.item()
 
 
 if __name__ == '__main__':
     # Hyper parameters
     batch_size = 256
-    epoch = 20
+    epoch = 5
     lr = 0.1
     momentum = 0.9
     weight_decay = 0
     num_workers = 4
     pin_memory = True
-    amp_enabled = True
-    use_fp16_compressor = True  # horovod
+    amp_enabled = False
+    use_fp16_compressor = False  # horovod
     reproducibility = True
 
     # Pytorch reproducibility
@@ -56,12 +107,11 @@ if __name__ == '__main__':
 
     # 3. Dataset (sampler 사용)
     transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize((32, 32)),
         torchvision.transforms.ToTensor(),
     ])
     with filelock.FileLock('horovod.lock'):
-        trainset = torchvision.datasets.MNIST(root='data', train=True, download=True, transform=transform)
-    testset = torchvision.datasets.MNIST(root='data', train=False, transform=transform)
+        trainset = torchvision.datasets.CIFAR10(root='data', train=True, download=True, transform=transform)
+    testset = torchvision.datasets.CIFAR10(root='data', train=False, transform=transform)
     train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=hvd.size(), rank=hvd.rank())
     test_sampler = torch.utils.data.distributed.DistributedSampler(testset, num_replicas=hvd.size(), rank=hvd.rank())
     trainloader = torch.utils.data.DataLoader(trainset, batch_size, sampler=train_sampler,
@@ -71,7 +121,7 @@ if __name__ == '__main__':
 
     # Model
     with filelock.FileLock('horovod.lock'):
-        model = model.LeNet().to(device)
+        model = torchvision.models.resnet101(num_classes=10).to(device)
     model_name = model.__str__().split('(')[0]
 
     # Loss function, optimizer, scaler
@@ -101,18 +151,16 @@ if __name__ == '__main__':
 
     # Train and test
     prev_accuracy = 0
+    images_per_sec = []
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
 
         epoch_time = time.time()
-        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
+        train_loss, train_accuracy = train(model, trainloader, criterion, optimizer, device, scaler)
         epoch_time = time.time() - epoch_time
-        images_per_sec = len(trainloader.dataset) / epoch_time
-        images_per_sec = hvd.allreduce(torch.tensor(images_per_sec), op=hvd.Average)
-        if local_rank == 0:
-            print(f'{images_per_sec:.2f}')
+        images_per_sec.append(str(round(len(trainloader.dataset) / epoch_time)) + '\n')
 
-        test_loss, test_accuracy = eval.evaluate(model, testloader, criterion, amp_enabled, device)
+        test_loss, test_accuracy = evaluate(model, testloader, criterion, amp_enabled, device)
         scheduler.step()
 
         if writer is not None:
@@ -136,3 +184,7 @@ if __name__ == '__main__':
 
     if writer is not None:
         writer.close()
+
+    if local_rank == 0:
+        with open(f'np{hvd.size()}_images_per_epoch.txt', 'w', encoding='utf-8') as f:
+            f.writelines(images_per_sec)
