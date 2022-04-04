@@ -23,7 +23,7 @@ if __name__ == '__main__':
     epoch = 100
     lr = 0.01
     momentum = 0.9
-    weight_decay = 0.0001
+    weight_decay = 0.0005
     num_workers = 4
     pin_memory = True
     amp_enabled = True
