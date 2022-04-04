@@ -108,7 +108,7 @@ if __name__ == '__main__':
         train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
         epoch_time = time.time() - epoch_time
         images_per_sec = len(trainloader.dataset) / epoch_time
-        images_per_sec = hvd.allreduce(images_per_sec, op=hvd.Average)
+        images_per_sec = hvd.allreduce(torch.tensor(images_per_sec), op=hvd.Average)
         if local_rank == 0:
             print(f'{images_per_sec:.2f}')
 
