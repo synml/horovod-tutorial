@@ -103,7 +103,7 @@ source .profile
 
 ## 4. (선택적) Conda에서 gxx_linux-64 설치
 
-Tensorflow, PyTorch가 Conda로 설치된 경우 진행.
+Tensorflow  PyTorch가 Conda로 설치된 경우 진행.
 
 ```bash
 conda install gxx_linux-64
