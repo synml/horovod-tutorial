@@ -105,8 +105,9 @@ if __name__ == '__main__':
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
 
-        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, scheduler, device, scaler)
+        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
         test_loss, test_accuracy = eval.evaluate(model, testloader, criterion, amp_enabled, device)
+        scheduler.step()
 
         if writer is not None:
             writer.add_scalar('Loss/train', train_loss, eph)
