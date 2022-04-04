@@ -22,11 +22,12 @@ if __name__ == '__main__':
     batch_size = 256
     epoch = 20
     lr = 0.001
+    momentum = 0.9
     weight_decay = 0
     num_workers = 0
     pin_memory = True
-    amp_enabled = False
-    use_fp16_compressor = False  # horovod
+    amp_enabled = True
+    use_fp16_compressor = True  # horovod
     reproducibility = True
 
     # Pytorch reproducibility
@@ -78,7 +79,7 @@ if __name__ == '__main__':
 
     # 3. Loss function, optimizer, scaler
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.RAdam(model.parameters(), lr, weight_decay=weight_decay)
+    optimizer = torch.optim.SGD(model.parameters(), lr, momentum=momentum, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, 1, 0, epoch)
     scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
 
