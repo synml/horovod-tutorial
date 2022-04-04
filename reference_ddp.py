@@ -168,14 +168,14 @@ if __name__ == '__main__':
                                     transforms.Normalize((0.1307,), (0.3081,))])
 
     with FileLock(os.path.expanduser("~/.horovod_lock")):
-        train_dataset = datasets.MNIST(data_dir, train=True, transform=transform, download=True)
+        train_dataset = datasets.CIFAR10(data_dir, train=True, transform=transform, download=True)
     # Horovod: use DistributedSampler to partition the training data.
     train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, sampler=train_sampler, **kwargs
     )
 
-    test_dataset = datasets.MNIST(data_dir, train=False, transform=transform)
+    test_dataset = datasets.CIFAR10(data_dir, train=False, transform=transform)
     # Horovod: use DistributedSampler to partition the test data.
     test_sampler = torch.utils.data.distributed.DistributedSampler(test_dataset)
     test_loader = torch.utils.data.DataLoader(
