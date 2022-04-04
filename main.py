@@ -97,6 +97,7 @@ if __name__ == '__main__':
     # 3. Loss function, optimizer, scaler
     criterion = nn.CrossEntropyLoss(reduction='sum')
     optimizer = torch.optim.SGD(model.parameters(), lr, momentum, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, 1, 0, epoch)
     scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
 
     # 4. Horovod: broadcast parameters & optimizer state.
@@ -123,7 +124,7 @@ if __name__ == '__main__':
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
 
-        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
+        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, scheduler, device, scaler)
         test_loss, test_accuracy = eval.evaluate(model, testloader, criterion, amp_enabled, device)
 
         if writer is not None:

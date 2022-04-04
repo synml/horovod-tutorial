@@ -3,7 +3,7 @@ import torch
 import tqdm
 
 
-def train(model, trainloader, criterion, optimizer, device, scaler=None):
+def train(model, trainloader, criterion, optimizer, scheduler, device, scaler=None):
     model.train()
 
     train_loss = torch.zeros(1, device=device)
@@ -22,6 +22,7 @@ def train(model, trainloader, criterion, optimizer, device, scaler=None):
         with optimizer.skip_synchronize():
             scaler.step(optimizer)
         scaler.update()
+        scheduler.step()
 
         train_loss += loss
         pred = torch.argmax(outputs, dim=1)
