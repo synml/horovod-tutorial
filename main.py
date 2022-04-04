@@ -151,7 +151,6 @@ if __name__ == '__main__':
         f.write(f'rank: {hvd.rank()}\n')
         f.write(f'local_rank: {hvd.local_rank()}\n')
         f.write(f'cross_rank: {hvd.cross_rank()}\n')
-        f.write(f'mpi_threads_supported: {hvd.mpi_threads_supported()}\n')
         f.write(f'mpi_enabled: {hvd.mpi_enabled()}\n')
         f.write(f'mpi_built: {hvd.mpi_built()}\n')
         f.write(f'gloo_enabled: {hvd.gloo_enabled()}\n')
