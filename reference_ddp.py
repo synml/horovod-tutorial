@@ -71,15 +71,8 @@ def train_mixed_precision(epoch, scaler):
         with torch.cuda.amp.autocast():
             output = model(data)
             loss = F.cross_entropy(output, target)
-
         scaler.scale(loss).backward()
-        # Make sure all async allreduces are done
-        optimizer.synchronize()
-        # In-place unscaling of all gradients before weights update
-        scaler.unscale_(optimizer)
-        with optimizer.skip_synchronize():
-            scaler.step(optimizer)
-        # Update scaler in case of overflow/underflow
+        scaler.step(optimizer)
         scaler.update()
 
         if batch_idx % args.log_interval == 0:
