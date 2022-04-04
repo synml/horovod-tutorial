@@ -20,7 +20,7 @@ if __name__ == '__main__':
     # Hyper parameters
     batch_size = 256
     epoch = 50
-    lr = 0.001
+    lr = 0.005
     momentum = 0.9
     weight_decay = 0.0001
     num_workers = 4
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
     # 3. Loss function, optimizer, scaler
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr, momentum, weight_decay=weight_decay)
+    optimizer = torch.optim.RAdam(model.parameters(), lr, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, 1, 0, epoch)
     scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
 
