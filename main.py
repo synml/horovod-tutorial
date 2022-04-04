@@ -5,108 +5,16 @@ import time
 import filelock
 import horovod.torch as hvd
 import numpy as np
-import torch
 import torch.backends.cudnn
+import torch.nn as nn
 import torch.utils.data
 import torch.utils.tensorboard
-import torch.nn as nn
-import torch.nn.functional as F
 import torchvision
 import tqdm
 
-
-class LeNet(nn.Module):
-    def __init__(self):
-        super(LeNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, kernel_size=5)
-        self.conv2 = nn.Conv2d(6, 16, kernel_size=5)
-        self.fc1 = nn.Linear(16 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = F.max_pool2d(F.relu(self.conv1(x)), 2)
-        x = F.max_pool2d(F.relu(self.conv2(x)), 2)
-        x = torch.flatten(x, start_dim=1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # log_softmax를 수행해야하지만 loss function에 포함되어 있으므로 생략.
-        return x
-
-
-class CustomLeNet(nn.Module):
-    def __init__(self):
-        super(CustomLeNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.bn1 = nn.BatchNorm2d(10)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.bn2 = nn.BatchNorm2d(20)
-        self.fc1 = nn.Linear(20 * 5 * 5, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 10)
-
-    def forward(self, x):
-        x = F.max_pool2d(F.relu(self.bn1(self.conv1(x))), 2)
-        x = F.max_pool2d(F.relu(self.bn2(self.conv2(x))), 2)
-        x = torch.flatten(x, start_dim=1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)  # log_softmax를 수행해야하지만 loss function에 포함되어 있으므로 생략.
-        return x
-
-
-def train(model, trainloader, criterion, optimizer, amp_enabled, device):
-    model.train()
-
-    train_loss = torch.zeros(1, device=device)
-    correct = torch.zeros(1, device=device)
-    for batch_idx, (images, targets) in enumerate(tqdm.tqdm(trainloader, desc='Train', leave=False)):
-        images, targets = images.to(device), targets.to(device)
-
-        optimizer.zero_grad()
-        with torch.cuda.amp.autocast(amp_enabled):
-            outputs = model(images)
-            loss = criterion(outputs, targets)
-        scaler.scale(loss).backward()
-        optimizer.synchronize()
-        scaler.unscale_(optimizer)
-        with optimizer.skip_synchronize():
-            scaler.step(optimizer)
-        scaler.update()
-
-        train_loss += loss
-        pred = torch.argmax(outputs, dim=1)
-        correct += torch.eq(pred, targets).sum()
-
-    train_loss /= len(trainloader)
-    train_loss = hvd.allreduce(train_loss, op=hvd.Average)
-
-    correct = hvd.allreduce(correct, op=hvd.Sum)
-    accuracy = correct / len(trainloader.dataset) * 100
-    return train_loss.item(), accuracy.item()
-
-
-def evaluate(model, testloader, criterion, amp_enabled, device):
-    model.eval()
-
-    test_loss = torch.zeros(1, device=device)
-    correct = torch.zeros(1, dtype=torch.int64, device=device)
-    for images, targets in tqdm.tqdm(testloader, desc='Eval', leave=False):
-        images, targets = images.to(device), targets.to(device)
-
-        with torch.cuda.amp.autocast(amp_enabled):
-            with torch.no_grad():
-                outputs = model(images)
-            test_loss += criterion(outputs, targets)
-            pred = torch.argmax(outputs, dim=1)
-            correct += torch.eq(pred, targets).sum()
-
-    test_loss /= len(testloader)
-    test_loss = hvd.allreduce(test_loss, op=hvd.Average)
-
-    correct = hvd.allreduce(correct, op=hvd.Sum)
-    accuracy = correct / len(testloader.dataset) * 100
-    return test_loss.item(), accuracy.item()
+import eval
+import model
+import train
 
 
 if __name__ == '__main__':
@@ -184,7 +92,7 @@ if __name__ == '__main__':
 
     # 2. Model
     with filelock.FileLock('horovod.lock'):
-        model = LeNet().to(device)
+        model = model.LeNet().to(device)
     model_name = model.__str__().split('(')[0]
 
     # 3. Loss function, optimizer, scaler
@@ -216,8 +124,8 @@ if __name__ == '__main__':
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
 
-        train_loss, train_accuracy = train(model, trainloader, criterion, optimizer, amp_enabled, device)
-        test_loss, test_accuracy = evaluate(model, testloader, criterion, amp_enabled, device)
+        train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
+        test_loss, test_accuracy = eval.evaluate(model, testloader, criterion, amp_enabled, device)
 
         if writer is not None:
             writer.add_scalar('Loss/train', train_loss, eph)
