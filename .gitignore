@@ -2,6 +2,7 @@
 data/
 debug/
 runs/
+weights/
 horovod.lock
 
 # Byte-compiled / optimized / DLL files
