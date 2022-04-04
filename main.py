@@ -19,14 +19,13 @@ import train
 if __name__ == '__main__':
     # Hyper parameters
     batch_size = 256
-    epoch = 50
-    lr = 0.005
-    momentum = 0.9
-    weight_decay = 0.0001
-    num_workers = 4
+    epoch = 20
+    lr = 0.001
+    weight_decay = 0
+    num_workers = 0
     pin_memory = True
-    amp_enabled = True
-    use_fp16_compressor = True  # horovod
+    amp_enabled = False
+    use_fp16_compressor = False  # horovod
     reproducibility = True
 
     # Pytorch reproducibility
