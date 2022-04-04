@@ -1,5 +1,6 @@
 import os
 import random
+import time
 
 import filelock
 import horovod.torch as hvd
@@ -21,7 +22,7 @@ if __name__ == '__main__':
     # Hyper parameters
     batch_size = 256
     epoch = 20
-    lr = 0.001
+    lr = 0.1
     momentum = 0.9
     weight_decay = 0
     num_workers = 4
@@ -103,7 +104,14 @@ if __name__ == '__main__':
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
 
+        epoch_time = time.time()
         train_loss, train_accuracy = train.train(model, trainloader, criterion, optimizer, device, scaler)
+        epoch_time = time.time() - epoch_time
+        images_per_sec = len(trainloader.dataset) / epoch_time
+        images_per_sec = hvd.allreduce(images_per_sec, op=hvd.Average)
+        if local_rank == 0:
+            print(f'{images_per_sec:.2f}')
+
         test_loss, test_accuracy = eval.evaluate(model, testloader, criterion, amp_enabled, device)
         scheduler.step()
 
