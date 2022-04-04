@@ -116,12 +116,9 @@ if __name__ == '__main__':
     lr = 0.01
     momentum = 0.9
     weight_decay = 0.0001
-
     num_workers = 4
     pin_memory = True
     amp_enabled = True
-
-    use_adasum = True   # horovod
     use_fp16_compressor = True  # horovod
 
     # Pytorch reproducibility
@@ -160,13 +157,7 @@ if __name__ == '__main__':
         f.write(f'rocm_built: {hvd.rocm_built()}\n')
 
     # Horovod: scaling up learning rate.
-    if use_adasum:
-        if hvd.nccl_built():
-            lr_scaler = hvd.local_size()
-        else:
-            lr_scaler = 1
-    else:
-        lr_scaler = hvd.size()
+    lr_scaler = hvd.size()
     lr *= lr_scaler
 
     # Device (local_rank 지정)
@@ -209,8 +200,7 @@ if __name__ == '__main__':
     compression = hvd.Compression.fp16 if use_fp16_compressor else hvd.Compression.none
 
     # Horovod: wrap optimizer with DistributedOptimizer.
-    optimizer = hvd.DistributedOptimizer(optimizer, model.named_parameters(), compression,
-                                         op=hvd.Adasum if use_adasum else hvd.Average)
+    optimizer = hvd.DistributedOptimizer(optimizer, model.named_parameters(), compression)
 
     # 4. Tensorboard
     if local_rank == 0:
