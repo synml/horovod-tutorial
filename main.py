@@ -83,7 +83,7 @@ def train(model, trainloader, criterion, optimizer, amp_enabled, device):
 
     correct = hvd.allreduce(correct, op=hvd.Sum)
     accuracy = correct / len(trainloader.dataset) * 100
-    return train_loss, accuracy
+    return train_loss.item(), accuracy.item()
 
 
 def evaluate(model, testloader, criterion, amp_enabled, device):
@@ -106,7 +106,7 @@ def evaluate(model, testloader, criterion, amp_enabled, device):
 
     correct = hvd.allreduce(correct, op=hvd.Sum)
     accuracy = correct / len(testloader.dataset) * 100
-    return test_loss, accuracy
+    return test_loss.item(), accuracy.item()
 
 
 if __name__ == '__main__':
