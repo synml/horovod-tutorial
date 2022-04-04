@@ -1,6 +1,5 @@
 import os
 import random
-import time
 
 import filelock
 import horovod.torch as hvd
@@ -112,7 +111,7 @@ if __name__ == '__main__':
 
     # 4. Tensorboard
     if local_rank == 0:
-        writer = torch.utils.tensorboard.SummaryWriter(os.path.join('runs', model_name + time.strftime('_%y%m%d-%H%M%S')))
+        writer = torch.utils.tensorboard.SummaryWriter(os.path.join('runs', model_name))
         writer.add_graph(model, trainloader.__iter__().__next__()[0].to(device))
         tqdm_disabled = False
     else:
