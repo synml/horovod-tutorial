@@ -18,7 +18,7 @@ import train
 
 
 if __name__ == '__main__':
-    # 0. Hyper parameters
+    # Hyper parameters
     batch_size = 256
     epoch = 10
     lr = 0.01
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         np.random.seed(0)
         random.seed(0)
 
-    # Horovod: initialize library
+    # 1. Horovod: initialize library
     hvd.init()
     assert hvd.is_initialized()
     local_rank = hvd.local_rank()
@@ -64,16 +64,16 @@ if __name__ == '__main__':
         f.write(f'cuda_built: {hvd.cuda_built()}\n')
         f.write(f'rocm_built: {hvd.rocm_built()}\n')
 
-    # Horovod: scaling up learning rate.
-    lr_scaler = hvd.size()
-    lr *= lr_scaler
-
-    # Device (local_rank 지정)
+    # 2. Horovod: local_rank로 GPU 고정
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank)
         device = torch.device('cuda', local_rank)
     else:
         device = torch.device('cpu')
+
+    # 3. Horovod: scaling up learning rate.
+    lr_scaler = hvd.size()
+    lr *= lr_scaler
 
     # 1. Dataset (sampler 사용)
     transform = torchvision.transforms.Compose([
@@ -100,14 +100,14 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(model.parameters(), lr, momentum, weight_decay=weight_decay)
     scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
 
-    # Horovod: broadcast parameters & optimizer state.
+    # 4. Horovod: broadcast parameters & optimizer state.
     hvd.broadcast_parameters(model.state_dict(), root_rank=0)
     hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
-    # Horovod: (optional) compression algorithm.
+    # (optional) Horovod: compression algorithm.
     compression = hvd.Compression.fp16 if use_fp16_compressor else hvd.Compression.none
 
-    # Horovod: wrap optimizer with DistributedOptimizer.
+    # 5. Horovod: wrap optimizer with DistributedOptimizer.
     optimizer = hvd.DistributedOptimizer(optimizer, model.named_parameters(), compression)
 
     # 4. Tensorboard
@@ -145,4 +145,6 @@ if __name__ == '__main__':
             if test_accuracy > prev_accuracy:
                 torch.save(state_dict, os.path.join('weights', f'{model_name}_best_accuracy.pth'))
                 prev_accuracy = test_accuracy
-    writer.close()
+
+    if writer is not None:
+        writer.close()
