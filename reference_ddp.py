@@ -206,3 +206,5 @@ if __name__ == '__main__':
     if local_rank == 0:
         with open(f'np{world_size}_images_per_epoch.txt', 'w', encoding='utf-8') as f:
             f.writelines(images_per_sec)
+
+    torch.distributed.destroy_process_group()
