@@ -1,5 +1,7 @@
 import argparse
 import os
+import time
+
 from filelock import FileLock
 
 import torch.multiprocessing as mp
@@ -222,10 +224,18 @@ if __name__ == '__main__':
                                          gradient_predivide_factor=args.gradient_predivide_factor)
 
     scaler = torch.cuda.amp.GradScaler()
+    images_per_sec = []
     for epoch in range(1, args.epochs + 1):
+        epoch_time = time.time()
         if args.use_mixed_precision:
             train_mixed_precision(epoch, scaler)
         else:
             train(epoch)
+        epoch_time = time.time() - epoch_time
+        images_per_sec.append(str(round(len(train_loader.dataset) / epoch_time)) + '\n')
         # Keep test in full precision since computation is relatively light.
         test()
+
+    if hvd.local_rank() == 0:
+        with open(f'np{hvd.size()}_images_per_epoch.txt', 'w', encoding='utf-8') as f:
+            f.writelines(images_per_sec)
