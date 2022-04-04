@@ -53,11 +53,7 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
 
-    # 3. Horovod: scaling up learning rate.
-    lr_scaler = hvd.size()
-    lr *= lr_scaler
-
-    # 1. Dataset (sampler 사용)
+    # 3. Dataset (sampler 사용)
     transform = torchvision.transforms.Compose([
         torchvision.transforms.Resize((32, 32)),
         torchvision.transforms.ToTensor(),
@@ -72,12 +68,12 @@ if __name__ == '__main__':
     testloader = torch.utils.data.DataLoader(testset, batch_size, sampler=test_sampler,
                                              num_workers=num_workers, pin_memory=pin_memory)
 
-    # 2. Model
+    # Model
     with filelock.FileLock('horovod.lock'):
         model = model.LeNet().to(device)
     model_name = model.__str__().split('(')[0]
 
-    # 3. Loss function, optimizer, scaler
+    # Loss function, optimizer, scaler
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr, momentum=momentum, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, 1, 0, epoch)
@@ -93,7 +89,7 @@ if __name__ == '__main__':
     # 5. Horovod: wrap optimizer with DistributedOptimizer.
     optimizer = hvd.DistributedOptimizer(optimizer, model.named_parameters(), compression)
 
-    # 4. Tensorboard
+    # Tensorboard
     if local_rank == 0:
         writer = torch.utils.tensorboard.SummaryWriter(os.path.join('runs', model_name))
         writer.add_graph(model, trainloader.__iter__().__next__()[0].to(device))
@@ -102,7 +98,7 @@ if __name__ == '__main__':
         writer = None
         tqdm_disabled = True
 
-    # 5. Train and test
+    # Train and test
     prev_accuracy = 0
     for eph in tqdm.tqdm(range(epoch), desc='Epoch', disable=tqdm_disabled):
         trainloader.sampler.set_epoch(eph)
