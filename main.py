@@ -207,7 +207,7 @@ if __name__ == '__main__':
     hvd.broadcast_optimizer_state(optimizer, root_rank=0)
 
     # Horovod: (optional) compression algorithm.
-    compression = hvd.Compression.FP16Compressor if use_fp16_compressor else hvd.Compression.NoneCompressor
+    compression = hvd.Compression.fp16 if use_fp16_compressor else hvd.Compression.none
 
     # Horovod: wrap optimizer with DistributedOptimizer.
     optimizer = hvd.DistributedOptimizer(optimizer, model.named_parameters(), compression,
