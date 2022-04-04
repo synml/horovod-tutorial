@@ -2,6 +2,7 @@ import os
 import random
 import time
 
+import filelock
 import horovod.torch as hvd
 import numpy as np
 import torch
@@ -182,7 +183,8 @@ if __name__ == '__main__':
         torchvision.transforms.Resize((32, 32)),
         torchvision.transforms.ToTensor(),
     ])
-    trainset = torchvision.datasets.MNIST(root='data', train=True, download=True, transform=transform)
+    with filelock.FileLock('horovod.lock'):
+        trainset = torchvision.datasets.MNIST(root='data', train=True, download=True, transform=transform)
     testset = torchvision.datasets.MNIST(root='data', train=False, transform=transform)
     train_sampler = torch.utils.data.distributed.DistributedSampler(trainset, num_replicas=hvd.size(), rank=hvd.rank())
     test_sampler = torch.utils.data.distributed.DistributedSampler(testset, num_replicas=hvd.size(), rank=hvd.rank())
@@ -192,7 +194,8 @@ if __name__ == '__main__':
                                              num_workers=num_workers, pin_memory=pin_memory)
 
     # 2. Model
-    model = LeNet().to(device)
+    with filelock.FileLock('horovod.lock'):
+        model = LeNet().to(device)
     model_name = model.__str__().split('(')[0]
 
     # 3. Loss function, optimizer, scaler
