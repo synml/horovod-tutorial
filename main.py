@@ -28,9 +28,9 @@ if __name__ == '__main__':
     pin_memory = True
     amp_enabled = True
     use_fp16_compressor = True  # horovod
+    reproducibility = True
 
     # Pytorch reproducibility
-    reproducibility = True
     if reproducibility:
         torch.manual_seed(0)
         torch.cuda.manual_seed(0)
