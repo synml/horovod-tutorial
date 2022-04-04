@@ -6,8 +6,8 @@ import tqdm
 def train(model, trainloader, criterion, optimizer, scheduler, device, scaler=None):
     model.train()
 
-    train_loss = 0
-    correct = 0
+    train_loss = torch.zeros(1, device=device)
+    correct = torch.zeros(1, dtype=torch.int64, device=device)
     for images, targets in tqdm.tqdm(trainloader, desc='Train', leave=False,
                                      disable=False if hvd.local_rank() == 0 else True):
         images, targets = images.to(device), targets.to(device)
@@ -24,13 +24,13 @@ def train(model, trainloader, criterion, optimizer, scheduler, device, scaler=No
         scaler.update()
         scheduler.step()
 
-        train_loss += loss.item()
+        train_loss += loss
         pred = torch.argmax(outputs, dim=1)
-        correct += torch.eq(pred, targets).sum().item()
+        correct += torch.eq(pred, targets).sum()
 
     train_loss /= len(trainloader)
-    train_loss = hvd.allreduce(torch.tensor(train_loss), op=hvd.Average).item()
+    train_loss = hvd.allreduce(train_loss, op=hvd.Average)
 
-    correct = hvd.allreduce(torch.tensor(correct), op=hvd.Sum).item()
+    correct = hvd.allreduce(correct, op=hvd.Sum)
     accuracy = correct / len(trainloader.dataset) * 100
-    return train_loss, accuracy
+    return train_loss.item(), accuracy.item()
