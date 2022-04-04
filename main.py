@@ -24,7 +24,7 @@ if __name__ == '__main__':
     lr = 0.001
     momentum = 0.9
     weight_decay = 0
-    num_workers = 0
+    num_workers = 4
     pin_memory = True
     amp_enabled = True
     use_fp16_compressor = True  # horovod
