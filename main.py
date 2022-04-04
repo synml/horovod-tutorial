@@ -77,7 +77,7 @@ if __name__ == '__main__':
     model_name = model.__str__().split('(')[0]
 
     # 3. Loss function, optimizer, scaler
-    criterion = nn.CrossEntropyLoss(reduction='sum')
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(), lr, momentum, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.LinearLR(optimizer, 1, 0, epoch)
     scaler = torch.cuda.amp.GradScaler(enabled=amp_enabled)
