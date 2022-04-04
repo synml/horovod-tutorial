@@ -45,24 +45,6 @@ if __name__ == '__main__':
     local_rank = hvd.local_rank()
     torch.set_num_threads(1)    # 프로세스당 사용되는 CPU 스레드의 수를 조절 (OMP_NUM_THREADS와 동일)
 
-    # (DEBUG) Horovod: horovod의 상태를 출력
-    os.makedirs('debug', exist_ok=True)
-    with open(f'debug/local_rank{local_rank}_state.txt', 'w', encoding='utf-8') as f:
-        f.write(f'size: {hvd.size()}\n')
-        f.write(f'local_size: {hvd.local_size()}\n')
-        f.write(f'cross_size: {hvd.cross_size()}\n')
-        f.write(f'rank: {hvd.rank()}\n')
-        f.write(f'local_rank: {hvd.local_rank()}\n')
-        f.write(f'cross_rank: {hvd.cross_rank()}\n')
-        f.write(f'mpi_enabled: {hvd.mpi_enabled()}\n')
-        f.write(f'mpi_built: {hvd.mpi_built()}\n')
-        f.write(f'gloo_enabled: {hvd.gloo_enabled()}\n')
-        f.write(f'nccl_built: {hvd.nccl_built()}\n')
-        f.write(f'ddl_built: {hvd.ddl_built()}\n')
-        f.write(f'ccl_built: {hvd.ccl_built()}\n')
-        f.write(f'cuda_built: {hvd.cuda_built()}\n')
-        f.write(f'rocm_built: {hvd.rocm_built()}\n')
-
     # 2. Horovod: local_rank로 GPU 고정
     if torch.cuda.is_available():
         torch.cuda.set_device(local_rank)
