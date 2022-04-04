@@ -181,7 +181,7 @@ if __name__ == '__main__':
         test_dataset, batch_size=args.test_batch_size, sampler=test_sampler, **kwargs
     )
 
-    model = Net()
+    model = Net().cuda()
     model = torch.nn.parallel.DistributedDataParallel(model)
 
     # By default, Adasum doesn't need scaling up learning rate.
