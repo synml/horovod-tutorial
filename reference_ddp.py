@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 
+import torchvision
 from filelock import FileLock
 
 import torch.multiprocessing as mp
@@ -181,7 +182,7 @@ if __name__ == '__main__':
         test_dataset, batch_size=args.test_batch_size, sampler=test_sampler, **kwargs
     )
 
-    model = Net().cuda()
+    model = torchvision.models.resnet50(num_classes=10).cuda()
     model = torch.nn.parallel.DistributedDataParallel(model)
 
     # By default, Adasum doesn't need scaling up learning rate.

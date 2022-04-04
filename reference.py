@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 
+import torchvision.models
 from filelock import FileLock
 
 import torch.multiprocessing as mp
@@ -194,7 +195,7 @@ if __name__ == '__main__':
         test_dataset, batch_size=args.test_batch_size, sampler=test_sampler, **kwargs
     )
 
-    model = Net()
+    model = torchvision.models.resnet50(num_classes=10)
 
     # By default, Adasum doesn't need scaling up learning rate.
     lr_scaler = hvd.size() if not args.use_adasum else 1
